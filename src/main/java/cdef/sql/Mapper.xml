@@ -1,0 +1,132 @@
+<?xml version="1.0" ?>
+<!DOCTYPE mapper
+PUBLIC "-//myatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mapper">
+	<!-- Grouping -->
+	<select id="pricelist" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+	<![CDATA[	
+		select *
+		from CLOSE_PRICE
+		where TICKER = #{TC} and TRADE_DATE <= #{TD}
+		order by TRADE_DATE desc
+		limit 80
+	]]>
+	</select>
+	<select id="list" resultType="cdef.grouping.Code">
+		select distinct *
+		from STOCK_ITEM
+	</select>
+	<select id="stockList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		select distinct TRADE_DATE, CLOSE_PRICE
+		from CLOSE_PRICE
+		where TICKER = #{TC}
+		order by TRADE_DATE
+	</select>
+	
+	<!-- Analyzer -->
+	<select id="articleList" resultType="cdef.dictionary.Layout">
+	<![CDATA[	
+     	select distinct ticker, article_content, today_stock, tomorrow_stock
+     	from news
+     	where trade_date < '20161106'
+     	order by trade_date desc
+     	limit 10000
+     ]]>
+   </select>
+   <select id="todayArticle" parameterType="java.util.HashMap" resultType="cdef.dictionary.Layout">
+   		select distinct ticker, article_content, today_stock, tomorrow_stock
+   		from news
+   		where (${value}) and trade_date = #{TD}
+   </select>
+   <insert id="keyword" parameterType="java.util.HashMap">
+   		insert into keyword 
+   		values ${VAL}
+   </insert>
+   <select id="getKeyword" resultType="String">
+   		select key from keyword
+   		order by key desc
+   </select>
+   <delete id="clear">
+   		delete from keyword
+   </delete>
+   
+   <!-- Elastic Net -->
+   <insert id="elaKeyword" parameterType="java.util.HashMap">
+   		insert into elastic 
+   		values ${VAL}
+   </insert>
+   <select id="getEla" resultType="cdef.dictionary.ElasticElement">
+   		select * from elastic
+   </select>
+   <delete id="elaClear">
+   		delete from elastic
+   </delete>
+   
+   <!-- Crawling -->
+	<select id="find" resultType="java.lang.String">
+		select max(TRADE_DATE)
+		from CLOSE_PRICE
+	</select>
+	<select id="findTicker" parameterType="java.util.HashMap" resultType="java.lang.String">
+		select TICKER
+		from STOCK_ITEM
+		where NAME = #{NAME}
+	</select>
+	<insert id="addCP" parameterType="java.util.HashMap">
+		insert into CLOSE_PRICE
+		values (#{TC}, #{TD}, #{CP}, #{HP}, #{LP})
+	</insert>
+	<insert id="addNews" parameterType="java.util.HashMap">
+		insert into NEWS
+		values(#{TC}, #{TD}, #{CN}, #{TDS}, #{TMS})
+	</insert>
+	<insert id="addNewF" parameterType="java.util.HashMap">
+		insert into NEW_FACILITIES
+		values(#{TC}, #{TD}, #{IO}, #{TDS}, #{TMS})
+	</insert>
+	<select id="yesterday" parameterType="java.util.HashMap" resultType="java.lang.String">
+		<![CDATA[			
+		select distinct CLOSE_PRICE
+		from CLOSE_PRICE
+		where TICKER = #{TC} and TRADE_DATE = (select MAX(TRADE_DATE)
+												from CLOSE_PRICE
+												where TRADE_DATE < (select MIN(TRADE_DATE)
+																	from CLOSE_PRICE
+																	where TRADE_DATE >= #{TD}))
+		]]>
+	</select>
+	<select id="today" parameterType="java.util.HashMap" resultType="java.lang.String">
+		<![CDATA[
+		select distinct CLOSE_PRICE
+		from CLOSE_PRICE
+		where TICKER = #{TC} and TRADE_DATE = (select MIN(TRADE_DATE)
+												from CLOSE_PRICE
+												where TRADE_DATE >= #{TD})
+		]]>
+	</select>
+	<select id="tomorrow" parameterType="java.util.HashMap" resultType="java.lang.String">
+		<![CDATA[
+		select distinct CLOSE_PRICE
+		from CLOSE_PRICE
+		where TICKER = #{TC} and TRADE_DATE = (select MIN(TRADE_DATE)
+												from CLOSE_PRICE
+												where TRADE_DATE > (select MIN(TRADE_DATE)
+																	from CLOSE_PRICE
+																	where TRADE_DATE >= #{TD}))
+		]]>
+	</select>
+	<delete id="delete" parameterType="java.util.HashMap">
+		delete
+		from NEW_FACILITIES
+		where TICKER = #{TC} and TRADE_DATE = #{TD}
+	</delete>
+	
+	<!-- Predict -->
+	<select id="findName" resultType="String" parameterType="java.util.HashMap">
+		select NAME
+		from stock_item
+		where ticker=#{TC}
+	</select>
+</mapper>
